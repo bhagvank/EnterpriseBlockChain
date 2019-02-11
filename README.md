@@ -2,7 +2,7 @@
 Block Chain for Enterprises
 
 
-![alt text](https://github.com/bhagvank/arc/blob/master/monte_carlo_quant.png)
+![alt text](https://github.com/bhagvank/arc/blob/master/)
 
 
 
