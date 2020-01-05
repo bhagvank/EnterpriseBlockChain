@@ -7,6 +7,7 @@ class BlockChain:
     def __init__(self,Name):
         self.name = Name
         self.chain = []
+        self.transactions_list = []
         
     def append(self,block):
         self.chain.append(block) 
@@ -16,7 +17,27 @@ class BlockChain:
         this_timestamp = date.datetime.now()
         this_data = Name + str(this_index)
         this_hash = last_block.hash
-        return Block(Name,this_index, this_timestamp, this_data, this_hash)    
+        return Block(Name,this_index, this_timestamp, this_data, this_hash) 
+    
+    def pow(self):
+        
+        last_item = self.chain[-1]
+        last_block_hash = last_item.hash_block()
+
+        nonce_value = 0
+        while self.check_pow_validity(self.transactions_list, last_block_hash, nonce_value) is False:
+            nonce_value += 1
+
+        return nonce_value
+    
+    def check_pow_validity(self, transactions_list, last_block_hash, nonce_value, difficulty=2):
+        guess_value = (str(transactions_list)+str(last_block_hash)+str(nonce_value)).encode()
+        guess_hash_value = hasher.sha256(guess_value).hexdigest()
+        return guess_hash_value[:difficulty] == '0'*difficulty
+    
+    def add_transaction(self,transaction):
+        self.transactions_list.append(transaction)
+        
         
 class Block:        
         
@@ -53,6 +74,8 @@ for i in range(0, num_of_blocks):
   print("Block #{} is added to the blockchain!".format(block_to_add.index))
   print("Hash: {}\n".format(block_to_add.hash))
 
+nonce_val = blockchain.pow()
+print(nonce_val)
 
 
 
