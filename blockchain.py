@@ -1,5 +1,12 @@
 import hashlib as hasher
 import datetime as date
+import Crypto
+import Crypto.Random
+from Crypto.Hash import SHA
+from Crypto.PublicKey import RSA
+from Crypto.Signature import PKCS1_v1_5
+from collections import OrderedDict
+import binascii
 
 class BlockChain:
 
@@ -12,12 +19,17 @@ class BlockChain:
     def append(self,block):
         self.chain.append(block) 
     
+    def getTransactions(self):
+        return self.transactions_list
+        
     def next_block(self,Name,last_block):
         this_index = last_block.index + 1
         this_timestamp = date.datetime.now()
         this_data = Name + str(this_index)
         this_hash = last_block.hash
-        return Block(Name,this_index, this_timestamp, this_data, this_hash) 
+        block = Block(Name,this_index, this_timestamp, this_data, this_hash,self.transactions_list)
+        self.transactions = []
+        return block
     
     def pow(self):
         
@@ -38,16 +50,43 @@ class BlockChain:
     def add_transaction(self,transaction):
         self.transactions_list.append(transaction)
         
+    def check_transaction_signature(self, sender_address, signature, transaction):
+        
+        public_key = RSA.importKey(binascii.unhexlify(sender_address))
+        verifier = PKCS1_v1_5.new(public_key)
+        h = SHA.new(str(transaction).encode('utf8'))
+        return verifier.verify(h, binascii.unhexlify(signature))
+
+
+    def submit_transaction_after_verification(self, sender_address, recipient_address, value, signature):
+        
+        transaction = OrderedDict({'sender_address': sender_address, 
+                                    'recipient_address': recipient_address,
+                                    'value': value})
+
+        #Reward for mining a block
+        if sender_address == "THE BLOCKCHAIN":
+            self.add_transaction(transaction)
+            return len(self.chain) + 1
+        else:
+            transaction_verification = self.check_transaction_signature(sender_address, signature, transaction)
+            if transaction_verification:
+                self.add_transactions(transaction)
+                return len(self.chain) + 1
+            else:
+                return False    
+        
         
 class Block:        
         
-    def __init__(self,Name,index, timestamp, data, previous_hash):
+    def __init__(self,Name,index, timestamp, data, previous_hash,transactions):
         self.name = Name
         self.index = index
         self.timestamp = timestamp
         self.data = data
         self.previous_hash = previous_hash
         self.hash = self.hash_block()
+        self.transactions = transactions
 
     def hash_block(self):
         sha = hasher.sha256()
@@ -59,7 +98,9 @@ class Block:
 
 blockchain = BlockChain("Enterprise BlockChain")
 
-block = Block("Block1",0, date.datetime.now(), "Block1".encode('utf-8'), "0".encode('utf-8'));
+blockchain.submit_transaction_after_verification("THE BLOCKCHAIN","asdfasdlasd",400,"23423dasd") 
+
+block = Block("Block1",0, date.datetime.now(), "Block1".encode('utf-8'), "0".encode('utf-8'),blockchain.getTransactions());
 print(blockchain.name);
 
 previous_block = block
@@ -68,6 +109,7 @@ num_of_blocks = 30
 
 
 for i in range(0, num_of_blocks):
+  blockchain.submit_transaction_after_verification("THE BLOCKCHAIN","asdfsdf",200+i,"23423dasd")    
   block_to_add = blockchain.next_block("num"+str(i),previous_block)
   blockchain.append(block_to_add)
   previous_block = block_to_add
