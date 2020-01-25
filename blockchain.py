@@ -7,6 +7,9 @@ from Crypto.PublicKey import RSA
 from Crypto.Signature import PKCS1_v1_5
 from collections import OrderedDict
 import binascii
+from urllib.parse import urlparse
+from uuid import uuid4
+import requests
 
 class BlockChain:
 
@@ -15,6 +18,8 @@ class BlockChain:
         self.name = Name
         self.chain = []
         self.transactions_list = []
+        self.nodes = set()
+        self.node_id = str(uuid4()).replace('-', '')
         
     def append(self,block):
         self.chain.append(block) 
@@ -74,7 +79,41 @@ class BlockChain:
                 self.add_transactions(transaction)
                 return len(self.chain) + 1
             else:
-                return False    
+                return False
+    def add_node(self, node_url):
+        parsed_url = urlparse(node_url)
+        if parsed_url.netloc:
+            self.nodes.add(parsed_url.netloc)
+        elif parsed_url.path:
+            self.nodes.add(parsed_url.path)
+        else:
+            raise ValueError('Invalid URL')            
+            
+    def check_conflicts(self):
+       
+        neighbours = self.nodes
+        new_chain = None
+
+        max_length = len(self.chain)
+
+
+        for node in neighbours:
+            print('http://' + node + '/chain')
+            response = requests.get('http://' + node + '/chain')
+
+            if response.status_code == 200:
+                length = response.json()['length']
+                chain = response.json()['chain']
+
+                if length > max_length and self.valid_chain(chain):
+                    max_length = length
+                    new_chain = chain
+
+        if new_chain:
+            self.chain = new_chain
+            return True
+
+        return False        
         
         
 class Block:        
@@ -119,6 +158,13 @@ for i in range(0, num_of_blocks):
 nonce_val = blockchain.pow()
 print(nonce_val)
 
+blockchain.add_node("http://node1")
+
+blockchain.add_node("http://node2")
+
+blockchain.add_node("http://node3")
+
+blockchain.check_conflicts()
 
 
 
